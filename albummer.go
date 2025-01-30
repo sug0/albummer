@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-//	"html"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 	"gopkg.in/russross/blackfriday.v2"
-	//	"github.com/pkg/profile"
 )
 
 var img_extensions = map[string]int{".png": 1, ".jpg": 1, ".jpeg": 1}
@@ -363,7 +361,7 @@ func generate(args []string) {
 					}
 					markdown_lines += "\n" + line
 				}
-                // markdown_lines = html.EscapeString(markdown_lines)
+				// markdown_lines = html.EscapeString(markdown_lines)
 				unsafe := blackfriday.Run([]byte(markdown_lines))
 				html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 				html_bodies = append(html_bodies, string(html))
