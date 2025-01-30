@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/microcosm-cc/bluemonday"
-	"gopkg.in/russross/blackfriday.v2"
+	"github.com/russross/blackfriday/v2"
 )
 
 var imgExtensions = map[string]int{".png": 1, ".jpg": 1, ".jpeg": 1}
