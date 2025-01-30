@@ -17,19 +17,19 @@ import (
 	"gopkg.in/russross/blackfriday.v2"
 )
 
-var img_extensions = map[string]int{".png": 1, ".jpg": 1, ".jpeg": 1}
-var vid_extensions = map[string]int{".mp4": 1}
-var wav_extensions = map[string]int{".wav": 1}
+var imgExtensions = map[string]int{".png": 1, ".jpg": 1, ".jpeg": 1}
+var vidExtensions = map[string]int{".mp4": 1}
+var wavExtensions = map[string]int{".wav": 1}
 
-const MEDIA_TYPE_IMG = 0
-const MEDIA_TYPE_VID = 1
-const MEDIA_TYPE_WAV = 2
+const mediaTypeImg = 0
+const mediaTypeVid = 1
+const mediaTypeWav = 2
 
 type MediaFile struct {
-	path       string
-	media_type int
-	mtime      time.Time
-	html       string
+	path      string
+	mediaType int
+	mtime     time.Time
+	html      string
 }
 
 // We create a collection type MediaFiles, as array of MediaFile structs
@@ -51,8 +51,7 @@ func (m MediaFiles) Less(i, j int) bool {
 
 // turn list into map[basename] -> *MediaFile
 func (m MediaFiles) ToMap() map[string]*MediaFile {
-	var ret map[string]*MediaFile
-	ret = make(map[string]*MediaFile)
+	ret := make(map[string]*MediaFile)
 
 	for _, mf := range m {
 		_, fn := filepath.Split(mf.path)
@@ -63,15 +62,15 @@ func (m MediaFiles) ToMap() map[string]*MediaFile {
 	return ret
 }
 
-func get_exe_folder() string {
+func getExeFolder() string {
 	exe, _ := os.Executable()
 	path, _ := filepath.Split(exe)
 	return path
 }
 
-func abort(msg string, exit_code int) {
+func abort(msg string, exitCode int) {
 	fmt.Println(msg)
-	os.Exit(exit_code)
+	os.Exit(exitCode)
 }
 
 func help() {
@@ -90,7 +89,7 @@ func main() {
 
 	switch cmd {
 	case "make-template":
-		make_template(args)
+		makeTemplate(args)
 	case "generate":
 		generate(args)
 	default:
@@ -98,11 +97,11 @@ func main() {
 	}
 }
 
-func get_lower_extension(path string) string {
+func getLowerExtension(path string) string {
 	return filepath.Ext(strings.ToLower(path))
 }
 
-func make_template(args []string) {
+func makeTemplate(args []string) {
 	if len(args) < 1 {
 		abort("Please specify a media folder and an output filename", 1)
 	}
@@ -112,15 +111,15 @@ func make_template(args []string) {
 
 	folder := args[0]
 	outfile := args[1]
-	css := filepath.Join(get_exe_folder(), "default.css")
-	num_cols := 3
+	css := filepath.Join(getExeFolder(), "default.css")
+	numCols := 3
 	order := "asc"
 
 	if len(args) > 2 {
 		n, err := strconv.Atoi(args[2])
-		num_cols = n
+		numCols = n
 		if err != nil {
-			num_cols = 3
+			numCols = 3
 		}
 	}
 
@@ -132,42 +131,42 @@ func make_template(args []string) {
 		css = args[4]
 	}
 
-	all_media, err := get_all_media(folder)
+	allMedia, err := getAllMedia(folder)
 	if order == "asc" {
-		sort.Sort(MediaFiles(all_media))
+		sort.Sort(MediaFiles(allMedia))
 	} else {
-		sort.Sort(sort.Reverse(MediaFiles(all_media)))
+		sort.Sort(sort.Reverse(MediaFiles(allMedia)))
 	}
 	if err != nil {
 		abort(err.Error(), 1)
 	}
 
-	var media_body string = ""
-	var line_len int = 0
+	var mediaBody string
+	var lineLen int
 
-	for _, m := range all_media {
+	for _, m := range allMedia {
 		_, fn := filepath.Split(m.path)
-		if m.media_type == MEDIA_TYPE_VID || m.media_type == MEDIA_TYPE_WAV {
-			if line_len > 0 {
-				media_body += "\n"
+		if m.mediaType == mediaTypeVid || m.mediaType == mediaTypeWav {
+			if lineLen > 0 {
+				mediaBody += "\n"
 			}
-			media_body += fmt.Sprintf("\n%s\n\n", fn)
-			line_len = 0
+			mediaBody += fmt.Sprintf("\n%s\n\n", fn)
+			lineLen = 0
 		} else {
-			if line_len > 0 {
-				media_body += "   "
+			if lineLen > 0 {
+				mediaBody += "   "
 			}
-			media_body += fn
-			line_len += 1
-			if line_len == num_cols {
-				media_body += "\n"
-				line_len = 0
+			mediaBody += fn
+			lineLen += 1
+			if lineLen == numCols {
+				mediaBody += "\n"
+				lineLen = 0
 			}
 		}
 	}
 
-	abs_folder, err := filepath.Abs(folder)
-	_, title := filepath.Split(abs_folder)
+	absFolder, err := filepath.Abs(folder)
+	_, title := filepath.Split(absFolder)
 
 	f, err := os.Create(outfile)
 	if err != nil {
@@ -176,7 +175,7 @@ func make_template(args []string) {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
-	_, err = w.WriteString(fmt.Sprintf(":folder %s\n:show_filenames\n:use %s\n\n# %s\n\n%s\n", folder, css, title, media_body))
+	_, err = w.WriteString(fmt.Sprintf(":folder %s\n:show_filenames\n:use %s\n\n# %s\n\n%s\n", folder, css, title, mediaBody))
 	if err != nil {
 		panic(err)
 	}
@@ -184,7 +183,7 @@ func make_template(args []string) {
 	fmt.Println("Generated", outfile)
 }
 
-func parse_folder(lines []string) (string, error) {
+func parseFolder(lines []string) (string, error) {
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
@@ -202,9 +201,9 @@ func parse_folder(lines []string) (string, error) {
 	return "", errors.New("No folder in album file")
 }
 
-func load_media(lines []string, folder string, all_media *map[string]*MediaFile) {
+func loadMedia(lines []string, folder string, allMedia *map[string]*MediaFile) {
 	c := make(chan int)
-	num_media := 0
+	numMedia := 0
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
@@ -217,29 +216,29 @@ func load_media(lines []string, folder string, all_media *map[string]*MediaFile)
 			if len(cols) == 0 {
 				continue
 			}
-			if _, ok := (*all_media)[cols[0]]; ok {
+			if _, ok := (*allMedia)[cols[0]]; ok {
 				// we have a media line
 				for _, col := range cols {
-					if media_file, ok := (*all_media)[col]; ok {
-						switch (*media_file).media_type {
-						case MEDIA_TYPE_IMG:
-							go func(media_file *MediaFile, col string, c chan int) {
-								(*media_file).html = img_to_html(folder, col)
+					if mediaFile, ok := (*allMedia)[col]; ok {
+						switch mediaFile.mediaType {
+						case mediaTypeImg:
+							go func(mediaFile *MediaFile, col string, c chan int) {
+								mediaFile.html = imgToHtml(folder, col)
 								c <- 1
-							}(media_file, col, c)
-							num_media++
-						case MEDIA_TYPE_VID:
-							go func(media_file *MediaFile, col string, c chan int) {
-								(*media_file).html = vid_to_html(folder, col)
+							}(mediaFile, col, c)
+							numMedia++
+						case mediaTypeVid:
+							go func(mediaFile *MediaFile, col string, c chan int) {
+								mediaFile.html = vidToHtml(folder, col)
 								c <- 1
-							}(media_file, col, c)
-							num_media++
-						case MEDIA_TYPE_WAV:
-							go func(media_file *MediaFile, col string, c chan int) {
-								(*media_file).html = wav_to_html(folder, col)
+							}(mediaFile, col, c)
+							numMedia++
+						case mediaTypeWav:
+							go func(mediaFile *MediaFile, col string, c chan int) {
+								mediaFile.html = wavToHtml(folder, col)
 								c <- 1
-							}(media_file, col, c)
-							num_media++
+							}(mediaFile, col, c)
+							numMedia++
 						}
 					}
 				}
@@ -247,8 +246,8 @@ func load_media(lines []string, folder string, all_media *map[string]*MediaFile)
 		}
 	}
 
-	for i := 0; i < num_media; i++ {
-		fmt.Print(fmt.Sprintf("\r  Loading image / video %4d of %-4d ", i+1, num_media))
+	for i := 0; i < numMedia; i++ {
+		fmt.Print(fmt.Sprintf("\r  Loading image / video %4d of %-4d ", i+1, numMedia))
 		// wait for completion
 		_ = <-c
 	}
@@ -259,8 +258,8 @@ func generate(args []string) {
 		abort("Please specify an input file!", 1)
 	}
 
-	input_file := args[0]
-	f, err := os.Open(input_file)
+	inputFile := args[0]
+	f, err := os.Open(inputFile)
 	if err != nil {
 		panic(err)
 	}
@@ -277,35 +276,34 @@ func generate(args []string) {
 
 	var folder string
 	var css string
-	//	show_filenames := false
-	var all_media map[string]*MediaFile
+	var allMedia map[string]*MediaFile
 
-	var html_bodies []string
-	var html_head string
+	var htmlBodies []string
+	var htmlHead string
 
 	lc := 0
-	lc_max := len(lines)
+	lcMax := len(lines)
 
-	folder, err = parse_folder(lines)
+	folder, err = parseFolder(lines)
 	if err != nil {
 		abort("No folder in album file!", 1)
 	}
 
-	all_media_list, err := get_all_media(folder)
+	allMediaList, err := getAllMedia(folder)
 	if err != nil {
 		panic(err)
 	}
-	all_media = all_media_list.ToMap()
+	allMedia = allMediaList.ToMap()
 
-	fmt.Println("The Albummer is processing", input_file)
-	load_media(lines, folder, &all_media)
+	fmt.Println("The Albummer is processing", inputFile)
+	loadMedia(lines, folder, &allMedia)
 	fmt.Println()
 
-	for lc < lc_max {
+	for lc < lcMax {
 		line := lines[lc]
 		lc += 1
 
-		fmt.Print(fmt.Sprintf("\r  Generating for line   %4d of %-4d ", lc, lc_max))
+		fmt.Print(fmt.Sprintf("\r  Generating for line   %4d of %-4d ", lc, lcMax))
 		if len(line) == 0 {
 			continue
 		}
@@ -314,13 +312,13 @@ func generate(args []string) {
 			cols := strings.Fields(line)
 			switch cols[0] {
 			case ":show_filenames":
-				//				show_filenames = true
+				// show_filenames = true
 			case ":use":
 				css = cols[1]
-				css_text, err := ioutil.ReadFile(css)
+				cssText, err := ioutil.ReadFile(css)
 				if err == nil {
-					html_head = fmt.Sprintf("<style>%s</style>",
-						string(css_text))
+					htmlHead = fmt.Sprintf("<style>%s</style>",
+						string(cssText))
 				}
 			} // end switch
 		} else {
@@ -329,65 +327,64 @@ func generate(args []string) {
 			if len(cols) == 0 {
 				continue
 			}
-			if _, ok := all_media[cols[0]]; ok {
+			if _, ok := allMedia[cols[0]]; ok {
 				// we have a media line
-				num_cols := len(cols)
-				percent := int(100 / num_cols)
+				numCols := len(cols)
+				percent := int(100 / numCols)
 				html := `<div align="center"><table><tr>`
 				for _, col := range cols {
 					html += fmt.Sprintf(`<td style="width:%d%%;">`, percent)
-					if media_file, ok := all_media[col]; ok {
-						html += (*media_file).html
+					if mediaFile, ok := allMedia[col]; ok {
+						html += mediaFile.html
 						html += `</td><td width="10px"></td>`
 					}
 				}
 				html += `</tr></table></div>`
-				html_bodies = append(html_bodies, html)
+				htmlBodies = append(htmlBodies, html)
 			} else {
 				// markdown block
-				markdown_lines := line
-				for lc < lc_max {
+				markdownLines := line
+				for lc < lcMax {
 					line = lines[lc]
 					lc += 1
 					if len(line) == 0 {
-						markdown_lines += "\n" + line
+						markdownLines += "\n" + line
 						continue
 					}
 					cols = strings.Fields(line)
-					if _, ok := all_media[cols[0]]; ok {
+					if _, ok := allMedia[cols[0]]; ok {
 						// we have a media line -> end of markdown, put it back
 						lc -= 1
 						break
 					}
-					markdown_lines += "\n" + line
+					markdownLines += "\n" + line
 				}
-				// markdown_lines = html.EscapeString(markdown_lines)
-				unsafe := blackfriday.Run([]byte(markdown_lines))
+				unsafe := blackfriday.Run([]byte(markdownLines))
 				html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-				html_bodies = append(html_bodies, string(html))
+				htmlBodies = append(htmlBodies, string(html))
 			}
 		}
 	}
 	fmt.Println()
 
-	ext := filepath.Ext(input_file)
-	out_file := strings.Replace(input_file, ext, ".html", 1)
-	of, err := os.Create(out_file)
+	ext := filepath.Ext(inputFile)
+	outFile := strings.Replace(inputFile, ext, ".html", 1)
+	of, err := os.Create(outFile)
 	if err != nil {
 		panic(err)
 	}
-	defer fmt.Println("Generated", out_file, "                ")
+	defer fmt.Println("Generated", outFile, "                ")
 	defer of.Close()
 
 	w := bufio.NewWriter(of)
-	_, err = w.WriteString(fmt.Sprintf("<!DOCTYPE html><html><head><meta charset=\"UTF-8\">%s</head>\n<body>", html_head))
+	_, err = w.WriteString(fmt.Sprintf("<!DOCTYPE html><html><head><meta charset=\"UTF-8\">%s</head>\n<body>", htmlHead))
 	if err != nil {
 		panic(err)
 	}
-	num_bodies := len(html_bodies)
-	for index, html_body := range html_bodies {
-		fmt.Print(fmt.Sprintf("\r  Writing HTML body     %4d of %-4d ", index+1, num_bodies))
-		_, err = w.WriteString(html_body)
+	numBodies := len(htmlBodies)
+	for index, htmlBody := range htmlBodies {
+		fmt.Print(fmt.Sprintf("\r  Writing HTML body     %4d of %-4d ", index+1, numBodies))
+		_, err = w.WriteString(htmlBody)
 		if err != nil {
 			panic(err)
 		}
@@ -401,24 +398,24 @@ func generate(args []string) {
 	fmt.Print("   (closing file ...)\r")
 }
 
-func get_all_media(root string) (MediaFiles, error) {
+func getAllMedia(root string) (MediaFiles, error) {
 	var files MediaFiles
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			ext := get_lower_extension(path)
-			_, is_img := img_extensions[ext]
-			_, is_vid := vid_extensions[ext]
-			_, is_wav := wav_extensions[ext]
+			ext := getLowerExtension(path)
+			_, isImg := imgExtensions[ext]
+			_, isVid := vidExtensions[ext]
+			_, isWav := wavExtensions[ext]
 
-			var media_type int = MEDIA_TYPE_IMG
-			if is_vid {
-				media_type = MEDIA_TYPE_VID
-			} else if is_wav {
-				media_type = MEDIA_TYPE_WAV
+			var mediaType int = mediaTypeImg
+			if isVid {
+				mediaType = mediaTypeVid
+			} else if isWav {
+				mediaType = mediaTypeWav
 			}
-			if is_img || is_vid || is_wav {
-				files = append(files, MediaFile{path, media_type, info.ModTime(), ""})
+			if isImg || isVid || isWav {
+				files = append(files, MediaFile{path, mediaType, info.ModTime(), ""})
 			}
 		}
 		return nil
@@ -426,22 +423,22 @@ func get_all_media(root string) (MediaFiles, error) {
 	return files, err
 }
 
-func img_to_html(folder string, img string) string {
+func imgToHtml(folder string, img string) string {
 	data, err := ioutil.ReadFile(filepath.Join(folder, img))
 	if err != nil {
 		return ""
 	}
 	ext := filepath.Ext(strings.ToLower(img))
-	var img_format string
+	var imgFormat string
 	if ext == ".png" {
-		img_format = "png"
+		imgFormat = "png"
 	} else {
-		img_format = "jpeg"
+		imgFormat = "jpeg"
 	}
-	return fmt.Sprintf(`<div class="imgdiv"><img class="center-fit" src="data:image/%s;base64,%s"></img></div>`, img_format, base64.StdEncoding.EncodeToString(data))
+	return fmt.Sprintf(`<div class="imgdiv"><img class="center-fit" src="data:image/%s;base64,%s"></img></div>`, imgFormat, base64.StdEncoding.EncodeToString(data))
 }
 
-func vid_to_html(folder string, vid string) string {
+func vidToHtml(folder string, vid string) string {
 	data, err := ioutil.ReadFile(filepath.Join(folder, vid))
 	if err != nil {
 		return ""
@@ -449,7 +446,7 @@ func vid_to_html(folder string, vid string) string {
 	return fmt.Sprintf(`<div class="viddiv"><video class="center-fit" controls src="data:video/mp4;base64,%s"></video></div>`, base64.StdEncoding.EncodeToString(data))
 }
 
-func wav_to_html(folder string, vid string) string {
+func wavToHtml(folder string, vid string) string {
 	data, err := ioutil.ReadFile(filepath.Join(folder, vid))
 	if err != nil {
 		return ""
